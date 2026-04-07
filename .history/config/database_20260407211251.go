@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/radja/gin-firebase-backend/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -40,11 +39,10 @@ func InitDatabase() {
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetMaxIdleConns(10)
 
-	// AutoMigrate: buat/update tabel sesuai struct model
-	err = DB.AutoMigrate(&models.User{}, &models.Product{})
-	if err != nil {
-		log.Fatalf("AutoMigrate gagal: %v", err)
-	}
+	// err = DB.AutoMigrate(&models.User{}, &models.Product{})
+	// if err != nil {
+	// 	log.Fatalf("AutoMigrate gagal: %v", err)
+	// }
 
 	log.Println("Database terhubung dan tabel sudah di-migrate")
 }

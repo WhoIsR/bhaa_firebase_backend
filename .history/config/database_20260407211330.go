@@ -40,7 +40,6 @@ func InitDatabase() {
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetMaxIdleConns(10)
 
-	// AutoMigrate: buat/update tabel sesuai struct model
 	err = DB.AutoMigrate(&models.User{}, &models.Product{})
 	if err != nil {
 		log.Fatalf("AutoMigrate gagal: %v", err)
