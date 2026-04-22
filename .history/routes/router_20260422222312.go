@@ -1,11 +1,8 @@
 package routes
 
 import (
-	"github.com/WhoIsR/bhaa_firebase_backend/config"
 	"github.com/WhoIsR/bhaa_firebase_backend/handlers"
 	"github.com/WhoIsR/bhaa_firebase_backend/middleware"
-	"github.com/WhoIsR/bhaa_firebase_backend/repositories"
-	"github.com/WhoIsR/bhaa_firebase_backend/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,13 +22,9 @@ func SetupRouter() *gin.Engine {
 		c.Next()
 	})
 
-	// Panggil (handlers) bawaan lu
+	// Panggil (handlers)
 	authHandler := handlers.NewAuthHandler()
 	productHandler := handlers.NewProductHandler()
-
-	orderRepo := repositories.NewOrderRepository(config.DB)
-	orderService := services.NewOrderService(orderRepo)
-	orderHandler := handlers.NewOrderHandler(orderService)
 
 	// Kita bungkus semua rute di dalam grup "/v1"
 	v1 := r.Group("/v1")
@@ -48,10 +41,6 @@ func SetupRouter() *gin.Engine {
 	// 3. Protected routes (Jalur VIP, WAJIB bawa token JWT yang valid)
 	protected := v1.Group("")
 	protected.Use(middleware.AuthMiddleware()) // Taruh satpam JWT di sini
-
-	// --- INI TAMBAHAN BARU: Jalur buat nerima Checkout dari Flutter ---
-	protected.POST("/checkout", orderHandler.Checkout)
-	// ------------------------------------------------------------------
 
 	// - Jalur Products (Bisa diakses semua user login)
 	products := protected.Group("/products")
