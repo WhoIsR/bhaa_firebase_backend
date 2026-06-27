@@ -28,6 +28,7 @@ func SetupRouter() *gin.Engine {
 	// Panggil (handlers) bawaan lu
 	authHandler := handlers.NewAuthHandler()
 	productHandler := handlers.NewProductHandler()
+	cartHandler := handlers.NewCartHandler(config.DB)
 
 	orderRepo := repositories.NewOrderRepository(config.DB)
 	orderService := services.NewOrderService(orderRepo)
@@ -52,6 +53,16 @@ func SetupRouter() *gin.Engine {
 	// --- INI TAMBAHAN BARU: Jalur buat nerima Checkout dari Flutter ---
 	protected.POST("/checkout", orderHandler.Checkout)
 	// ------------------------------------------------------------------
+
+	cart := protected.Group("/cart")
+	cart.GET("", cartHandler.GetCart)
+	cart.POST("", cartHandler.AddToCart)
+	cart.PUT("/:id", cartHandler.UpdateCartItem)
+	cart.DELETE("/:id", cartHandler.RemoveCartItem)
+	cart.DELETE("", cartHandler.ClearCart)
+
+	orders := protected.Group("/orders")
+	orders.POST("/checkout", orderHandler.Checkout)
 
 	// - Jalur Products (Bisa diakses semua user login)
 	products := protected.Group("/products")
