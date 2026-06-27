@@ -1,6 +1,31 @@
-.env
-firebase-service-account.json
+# Go binary
 *.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 *.test
-/tmp
-/vendor
+
+# Environment
+.env
+
+# Secrets
+firebase-service-account.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# History backup
+.history/
+
+# Build cache
+tmp/
+
+# Binaries
+main
+fashion-app-backend

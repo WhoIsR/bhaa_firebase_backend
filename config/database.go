@@ -46,5 +46,12 @@ func InitDatabase() {
 		log.Fatalf("AutoMigrate gagal: %v", err)
 	}
 
+	// Migrasi manual: ganti unique index cart_items supaya kompatibel dengan GORM soft delete
+	// GORM soft delete setting deleted_at jadi timestamp (bukan null), tapi MySQL unique index
+	// lama (user_id,product_id) nolak duplikat. Dengan index (user_id,product_id,deleted_at)
+	// MySQL mengizinkan baris soft-deleted tetap ada tanpa menghalangi insert baru yang aktif.
+	DB.Exec("ALTER TABLE cart_items DROP INDEX IF EXISTS idx_user_product")
+	DB.Exec("ALTER TABLE cart_items ADD UNIQUE INDEX idx_user_product_deleted (user_id, product_id, deleted_at(3))")
+
 	log.Println("Database terhubung dan tabel sudah di-migrate")
 }
