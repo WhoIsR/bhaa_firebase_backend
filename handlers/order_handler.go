@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/WhoIsR/bhaa_firebase_backend/config"
 	"github.com/WhoIsR/bhaa_firebase_backend/models"
 	"github.com/WhoIsR/bhaa_firebase_backend/services"
 
@@ -20,46 +21,66 @@ func NewOrderHandler(service services.OrderService) *OrderHandler {
 func (h *OrderHandler) Checkout(c *gin.Context) {
 	// 1. Bikin wadah kosong buat nangkep JSON kiriman Flutter
 	var req struct {
-		TotalPrice float64 `json:"total_price" binding:"required"`
-		Items      []struct {
-			ProductID uint    `json:"product_id" binding:"required"`
-			Quantity  int     `json:"quantity" binding:"required"`
-			Price     float64 `json:"price" binding:"required"`
-		} `json:"items" binding:"required"`
+		ShippingAddress string  `json:"shipping_address"`
+		Notes           string  `json:"notes"`
+		PaymentMethod   string  `json:"payment_method"`
+		TotalPrice      float64 `json:"total_price"`
+		Items           []struct {
+			ProductID uint    `json:"product_id"`
+			Quantity  int     `json:"quantity"`
+			Price     float64 `json:"price"`
+		} `json:"items"`
 	}
 
 	// 2. Masukin data JSON ke dalam wadah tadi
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Data belanjaan nggak lengkap bro"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Data checkout tidak valid"})
 		return
 	}
 
 	// 3. Ambil ID user dari Satpam Middleware (yang didapet dari token JWT)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Lu belum login bro"})
+	finalUserID, ok := userIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "User belum login"})
 		return
 	}
 
-	// Konversi tipe data userID biar aman
-	var finalUserID uint
-	switch v := userID.(type) {
-	case float64:
-		finalUserID = uint(v)
-	case uint:
-		finalUserID = v
-	case int:
-		finalUserID = uint(v)
+	if len(req.Items) == 0 {
+		var cartItems []models.CartItem
+		if err := config.DB.Preload("Product").Where("user_id = ?", finalUserID).Find(&cartItems).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal mengambil cart"})
+			return
+		}
+		if len(cartItems) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Cart masih kosong"})
+			return
+		}
+		for _, item := range cartItems {
+			req.Items = append(req.Items, struct {
+				ProductID uint    `json:"product_id"`
+				Quantity  int     `json:"quantity"`
+				Price     float64 `json:"price"`
+			}{
+				ProductID: item.ProductID,
+				Quantity:  item.Quantity,
+				Price:     item.Product.Price,
+			})
+			req.TotalPrice += item.Product.Price * float64(item.Quantity)
+		}
 	}
 
 	// 4. Susun data jadi bentuk Model Database
 	order := models.Order{
 		UserID:     finalUserID,
 		TotalPrice: req.TotalPrice,
-		Status:     "success", // Simulasi sukses sesuai permintaan dosen
+		Status:     "success",
 	}
 
 	for _, item := range req.Items {
+		if item.ProductID == 0 || item.Quantity <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Data item checkout tidak valid"})
+			return
+		}
 		order.OrderItems = append(order.OrderItems, models.OrderItem{
 			ProductID: item.ProductID,
 			Quantity:  item.Quantity,
@@ -69,10 +90,25 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 
 	// 5. Suruh Mandor (Service) nyimpen datanya
 	if err := h.service.CreateOrder(&order); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal nyimpen pesanan ke database"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal menyimpan pesanan"})
 		return
 	}
 
+	config.DB.Where("user_id = ?", finalUserID).Delete(&models.CartItem{})
+
 	// 6. Kasih struk sukses ke Flutter
-	c.JSON(http.StatusCreated, gin.H{"message": "Checkout berhasil masuk MySQL!", "order": order})
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "Checkout berhasil",
+		"data": gin.H{
+			"id":               order.ID,
+			"total_amount":     order.TotalPrice,
+			"status":           order.Status,
+			"shipping_address": req.ShippingAddress,
+			"notes":            req.Notes,
+			"payment_method":   req.PaymentMethod,
+			"items":            order.OrderItems,
+			"created_at":       order.CreatedAt,
+		},
+	})
 }
