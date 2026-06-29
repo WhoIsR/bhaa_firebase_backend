@@ -62,6 +62,7 @@ func SetupRouter() *gin.Engine {
 	cart.DELETE("", cartHandler.ClearCart)
 
 	orders := protected.Group("/orders")
+	orders.GET("", orderHandler.GetMyOrders)
 	orders.POST("/checkout", orderHandler.Checkout)
 
 	// - Jalur Products (Bisa diakses semua user login)

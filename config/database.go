@@ -40,6 +40,9 @@ func InitDatabase() {
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetMaxIdleConns(10)
 
+	// Hapus index lama dulu sebelum AutoMigrate, biar gak crash gara-gara duplikat
+	DB.Exec("DROP INDEX IF EXISTS `idx_user_product` ON `cart_items`")
+
 	// AutoMigrate: buat/update tabel sesuai struct model
 	err = DB.AutoMigrate(&models.User{}, &models.Product{}, &models.CartItem{}, &models.Order{}, &models.OrderItem{})
 	if err != nil {

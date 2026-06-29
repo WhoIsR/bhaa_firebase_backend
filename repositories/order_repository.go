@@ -9,6 +9,7 @@ import (
 
 type OrderRepository interface {
 	CreateOrder(order *models.Order) error
+	GetOrdersByUserID(userID uint, page, limit int) ([]models.Order, error)
 }
 
 type orderRepository struct {
@@ -44,4 +45,18 @@ func (r *orderRepository) CreateOrder(order *models.Order) error {
 
 		return nil
 	})
+}
+
+// Ambil daftar pesanan milik user tertentu — ponytail: single table Preload, paging via offset/limit
+func (r *orderRepository) GetOrdersByUserID(userID uint, page, limit int) ([]models.Order, error) {
+	var orders []models.Order
+	offset := (page - 1) * limit
+	if err := r.db.Where("user_id = ?", userID).
+		Preload("OrderItems").
+		Order("created_at desc").
+		Offset(offset).Limit(limit).
+		Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	return orders, nil
 }
