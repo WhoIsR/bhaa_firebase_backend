@@ -54,7 +54,7 @@ func InitDatabase() {
 	// lama (user_id,product_id) nolak duplikat. Dengan index (user_id,product_id,deleted_at)
 	// MySQL mengizinkan baris soft-deleted tetap ada tanpa menghalangi insert baru yang aktif.
 	DB.Exec("ALTER TABLE cart_items DROP INDEX IF EXISTS idx_user_product")
-	DB.Exec("ALTER TABLE cart_items ADD UNIQUE INDEX idx_user_product_deleted (user_id, product_id, deleted_at(3))")
+	DB.Exec("ALTER TABLE cart_items ADD UNIQUE INDEX idx_user_product_deleted (user_id, product_id, deleted_at)")
 
 	log.Println("Database terhubung dan tabel sudah di-migrate")
 }
