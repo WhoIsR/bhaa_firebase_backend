@@ -47,7 +47,7 @@ func (r *orderRepository) CreateOrder(order *models.Order) error {
 	})
 }
 
-// Ambil daftar pesanan milik user tertentu — ponytail: single table Preload, paging via offset/limit
+// Ambil daftar pesanan milik user tertentu
 func (r *orderRepository) GetOrdersByUserID(userID uint, page, limit int) ([]models.Order, error) {
 	var orders []models.Order
 	offset := (page - 1) * limit
